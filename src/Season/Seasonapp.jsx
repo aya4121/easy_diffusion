@@ -1,27 +1,41 @@
-import React, { useState, useRef } from 'react';
+//src/Time/Seasonapp.jsx
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import Img from './season_picture.jpg';
 
-const Season = () => {
-  // 初期角度を -90 度（上向き）に設定
+const Season = forwardRef((props, ref) => {
   const [rotation, setRotation] = useState(-90);
   const [isDragging, setIsDragging] = useState(false);
   const circleRef = useRef(null);
 
+  // 数字から月名へのマッピング
+  const monthMapping = {
+    1: 'January',
+    2: 'February',
+    3: 'March',
+    4: 'April',
+    5: 'May',
+    6: 'June',
+    7: 'July',
+    8: 'August',
+    9: 'September',
+    10: 'October',
+    11: 'November',
+    12: 'December',
+  };
+
   // 回転を計算する関数
   const calculateRotation = (event) => {
-    if (!isDragging) return; // ドラッグ中でなければ処理を停止
+    if (!isDragging) return;
 
     const circle = circleRef.current;
     if (!circle) return;
 
-    // 丸の中心位置を取得
     const rect = circle.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
-    // マウス位置と中心位置から角度を計算
     const angle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
-    setRotation((angle * 180) / Math.PI); // ラジアンを度に変換
+    setRotation((angle * 180) / Math.PI);
   };
 
   // ドラッグ開始
@@ -34,16 +48,35 @@ const Season = () => {
     setIsDragging(false);
   };
 
+  // 現在の針が指している月番号を計算
+  const getCurrentMonthNumber = () => {
+    const normalizedRotation = (rotation + 90 + 360) % 360; // -90度を0度基準に正規化
+    const closestIndex = Math.round(normalizedRotation / 30); // 30度刻み
+    const numberMapping = [6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5]; // 数字の配置
+    return numberMapping[closestIndex % 12]; // 配置された数字を取得
+  };
+
+  // 現在の月名を取得
+  const getCurrentMonth = () => {
+    const monthNumber = getCurrentMonthNumber();
+    return monthMapping[monthNumber];
+  };
+
+  // 外部から`getCurrentMonth`を呼び出せるように設定
+  useImperativeHandle(ref, () => ({
+    getCurrentMonth,
+  }));
+
   // 数字の位置を計算し、針に近い数字を大きくする
   const renderNumbers = () => {
-    const radius = 120; // 数字を配置する半径
-    const numberMapping = [6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5]; // 配置する数字の順番
+    const radius = 120;
+    const numberMapping = [6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5];
     return Array.from({ length: 12 }, (_, i) => {
-      const numberAngle = i * 30; // 各数字の角度（0度が12）
-      const angleDiff = Math.abs(((rotation + 90 - numberAngle + 360) % 360)); // 角度差を0-180の範囲で求める
-      const scale = 1 + Math.max(0, 1 - angleDiff / 15); // 角度差に応じてサイズをスムーズに変化
+      const numberAngle = i * 30;
+      const angleDiff = Math.abs(((rotation + 90 - numberAngle + 360) % 360));
+      const scale = 1 + Math.max(0, 1 - angleDiff / 15);
 
-      const angleInRadians = (numberAngle - 90) * (Math.PI / 180); // 各数字の角度をラジアンに変換
+      const angleInRadians = (numberAngle - 90) * (Math.PI / 180);
       const x = radius * Math.cos(angleInRadians);
       const y = radius * Math.sin(angleInRadians);
       return (
@@ -56,7 +89,7 @@ const Season = () => {
             transform: `translate(-50%, -50%) scale(${scale})`,
             fontSize: '20px',
             fontWeight: 'bold',
-            transition: 'transform 0.1s ease', // サイズ変化を滑らかに
+            transition: 'transform 0.1s ease',
           }}
         >
           {numberMapping[i]}
@@ -73,11 +106,10 @@ const Season = () => {
         justifyContent: 'center',
         height: '55vh',
       }}
-      onMouseMove={calculateRotation} // マウス移動時に回転を計算
-      onMouseUp={handleMouseUp}       // マウスが離れたときにドラッグ終了
-      onMouseLeave={handleMouseUp}     // ウィンドウ外に出たときもドラッグ終了
+      onMouseMove={calculateRotation}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
-      {/* 外側の円 */}
       <div
         style={{
           width: '200px',
@@ -88,15 +120,12 @@ const Season = () => {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          backgroundImage: `url(${Img})`, // 修正: 画像を文字列として指定
-          backgroundPosition: 'center', // 画像の中心を円の中心に配置
-          backgroundSize: 'cover', // 画像を円に合わせて拡大縮小
+          backgroundImage: `url(${Img})`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
         }}
       >
-        {/* 数字 */}
         {renderNumbers()}
-
-        {/* 中心の丸 */}
         <div
           ref={circleRef}
           style={{
@@ -107,13 +136,11 @@ const Season = () => {
             position: 'absolute',
             top: '50%',
             left: '50%',
-            transform: 'translate(-50%, -50%)', // 中心に配置
+            transform: 'translate(-50%, -50%)',
           }}
         />
-
-        {/* 棒 */}
         <div
-          onMouseDown={handleMouseDown} // マウスが押されたときにドラッグ開始
+          onMouseDown={handleMouseDown}
           style={{
             width: '100px',
             height: '10px',
@@ -121,7 +148,7 @@ const Season = () => {
             position: 'absolute',
             top: '50%',
             left: '50%',
-            transformOrigin: '0 50%', // 棒の左端を中心に固定
+            transformOrigin: '0 50%',
             transform: `rotate(${rotation}deg)`,
             cursor: 'pointer',
           }}
@@ -129,6 +156,6 @@ const Season = () => {
       </div>
     </div>
   );
-};
+});
 
 export default Season;
